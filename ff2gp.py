@@ -181,10 +181,35 @@ def parse_person(raw):
 
 def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
            keep_ground_training, with_remarks, landing_mode='total',
-           pic_name='Self'):
+           pic_name='Self', pic_fallback=False):
     cols = {h: j for j, h in enumerate(fl_hdr) if h}
     out_rows = []
-    stats = {'flights': 0, 'ground': 0, 'skipped_ground': 0}
+    stats = {'flights': 0, 'ground': 0, 'skipped_ground': 0, 'pic_fallback': 0}
+
+    def pic_value(row):
+        """PIC hours to write. With pic_fallback, flights that have
+        TotalTime but NO pilot category at all (PIC/SIC/PICUS/Dual all
+        blank or zero) and no instructor listed are treated as the
+        account holder flying their own airplane: PIC = TotalTime.
+        Student flights with an instructor aboard are NOT touched (dual
+        received with the CFI as PIC is correct logging)."""
+        pic = num_str(row, cols, 'PIC')
+        if pic:
+            return pic
+        if not pic_fallback:
+            return ''
+        total = num_str(row, cols, 'TotalTime')
+        if not total:
+            return ''
+        for cat in ('SIC', 'PICUS', 'DualReceived', 'DualGiven', 'GroundTraining'):
+            if num_str(row, cols, cat):
+                return ''
+        people = ' '.join(field(row, cols, k) for k in ('Person1', 'Person2', 'Person3'))
+        if 'Instructor' in people or field(row, cols, 'InstructorName'):
+            return ''
+        stats['pic_fallback'] += 1
+        stats['pic_fallback_hours'] = round(stats.get('pic_fallback_hours', 0.0) + float(total), 1)
+        return total
 
     for row in flights:
         tail = field(row, cols, 'AircraftID')
@@ -263,6 +288,9 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             x = float(x or 0)
             return str(int(x)) if x else ''
 
+        # compute PIC once per row (pic_value updates stats)
+        pic_out = pic_value(row)
+
         values = {
             'Date': date,
             'Aircraft ID': tail,
@@ -289,8 +317,8 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             # exists for shared logbooks (CFI logging dual given, or a
             # student's logbook where the PIC is the instructor); in a
             # personal logbook it is always the owner.
-            'PIC Name': pic_name if num_str(row, cols, 'PIC') else '',
-            'PIC Duration': num_str(row, cols, 'PIC'),
+            'PIC Name': pic_out if pic_out else '',
+            'PIC Duration': pic_out,
             'SIC Duration': num_str(row, cols, 'SIC'),
             'Solo Duration': num_str(row, cols, 'Solo'),
             'Cross Country Duration': num_str(row, cols, 'CrossCountry'),
@@ -332,7 +360,8 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
 # Totals audit (source vs output) so the import can be verified
 # ---------------------------------------------------------------------------
 
-def audit(fl_hdr, flights, template_header, out_rows):
+def audit(fl_hdr, flights, template_header, out_rows, stats=None):
+    stats = stats or {}
     src_cols = {h: j for j, h in enumerate(fl_hdr) if h}
     out_cols = {h: j for j, h in enumerate(template_header) if h}
 
@@ -394,6 +423,16 @@ def audit(fl_hdr, flights, template_header, out_rows):
                       f"(+{round(mirrored, 1)} ground hours mirrored onto "
                       f"ground-training rows)]")
                 continue
+        # --pic-fallback intentionally adds PIC hours to source rows that
+        # had a total but no pilot category at all. Account for it.
+        if s == 'PIC' and stats.get('pic_fallback'):
+            fb = stats.get('pic_fallback_hours', 0.0)
+            if abs(b - (a + fb)) < 0.05:
+                print(f"  {s:<20} {a:>8}  ->  {o:<30} {b:>8}  [OK "
+                      f"(+{round(fb, 1)} PIC hours reconstructed on "
+                      f"{stats['pic_fallback']} uncategorized rows via "
+                      f"--pic-fallback)]")
+                continue
         match = 'OK' if a == b else 'MISMATCH'
         if a != b:
             ok = False
@@ -430,6 +469,11 @@ def main():
                          "time (the account holder's full name, e.g. "
                          "'John Minor'; 'Self' is Garmin's template "
                          "placeholder and imports literally)")
+    ap.add_argument('--pic-fallback', action='store_true',
+                    help="when a flight has TotalTime but no PIC/SIC/PICUS/"
+                         "Dual category at all and no instructor aboard, "
+                         "treat the account holder as PIC (PIC = TotalTime). "
+                         "Repairs ForeFlight rows logged with only a total.")
     args = ap.parse_args()
 
     overrides = {}
@@ -447,7 +491,7 @@ def main():
     out_rows, stats = convert(aircraft, fl_hdr, flights, template_header,
                               overrides, not args.skip_ground_training,
                               not args.no_remarks, args.landings,
-                              args.pic_name)
+                              args.pic_name, args.pic_fallback)
 
     with open(args.output, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
@@ -458,7 +502,7 @@ def main():
           f"(flights: {stats['flights']}, ground training: {stats['ground']}, "
           f"skipped: {stats['skipped_ground']})")
     print(f"wrote {len(out_rows)} rows -> {args.output}")
-    audit(fl_hdr, flights, template_header, out_rows)
+    audit(fl_hdr, flights, template_header, out_rows, stats)
 
 
 if __name__ == '__main__':

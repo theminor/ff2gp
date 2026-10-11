@@ -262,7 +262,9 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             'Hobbs In': num_str(row, cols, 'HobbsEnd'),
             'Tach Out': num_str(row, cols, 'TachStart'),
             'Tach In': num_str(row, cols, 'TachEnd'),
-            'Total Duration': num_str(row, cols, 'TotalTime'),
+            # Garmin requires Total Duration on every row; ground-training
+            # rows have no flight time, so supply an explicit 0.
+            'Total Duration': num_str(row, cols, 'TotalTime') or ('0' if is_ground else ''),
             'Night Duration': num_str(row, cols, 'Night'),
             'PIC Duration': num_str(row, cols, 'PIC'),
             'SIC Duration': num_str(row, cols, 'SIC'),

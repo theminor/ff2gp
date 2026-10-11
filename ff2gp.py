@@ -262,9 +262,13 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             'Hobbs In': num_str(row, cols, 'HobbsEnd'),
             'Tach Out': num_str(row, cols, 'TachStart'),
             'Tach In': num_str(row, cols, 'TachEnd'),
-            # Garmin requires Total Duration on every row; ground-training
-            # rows have no flight time, so supply an explicit 0.
-            'Total Duration': num_str(row, cols, 'TotalTime') or ('0' if is_ground else ''),
+            # Garmin requires a strictly POSITIVE Total Duration on every
+            # row: verified live on flyGarmin, both '0.0' and '00:00' are
+            # rejected ("expected to be a duration greater than or equal
+            # to 0"). For ground-training rows, mirror the ground hours
+            # into Total Duration so the row passes validation.
+            'Total Duration': num_str(row, cols, 'TotalTime')
+                or (num_str(row, cols, 'GroundTraining') if is_ground else ''),
             'Night Duration': num_str(row, cols, 'Night'),
             'PIC Duration': num_str(row, cols, 'PIC'),
             'SIC Duration': num_str(row, cols, 'SIC'),
@@ -342,6 +346,24 @@ def audit(fl_hdr, flights, template_header, out_rows):
     ok = True
     for s, o in pairs:
         a, b = sum_src(s), sum_out(o)
+        # Total Duration intentionally exceeds source TotalTime by the ground
+        # hours mirrored onto pure ground-training rows (Garmin rejects a
+        # zero Total Duration). Ground time sitting on real flight rows is
+        # NOT mirrored (those rows already have a positive TotalTime), so
+        # compute the mirrored amount from the output rows themselves.
+        if s == 'TotalTime':
+            mirrored = 0.0
+            for r in out_rows:
+                if not r[out_cols['Aircraft ID']].strip():
+                    try:
+                        mirrored += float(r[out_cols['Total Duration']] or 0)
+                    except ValueError:
+                        pass
+            if abs(b - (a + mirrored)) < 0.05:
+                print(f"  {s:<20} {a:>8}  ->  {o:<30} {b:>8}  [OK "
+                      f"(+{round(mirrored, 1)} ground hours mirrored onto "
+                      f"ground-training rows)]")
+                continue
         match = 'OK' if a == b else 'MISMATCH'
         if a != b:
             ok = False

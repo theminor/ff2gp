@@ -92,6 +92,18 @@ def num_str(row, cols, name):
     return f"{f:.1f}"
 
 
+def meters_str(sm_value):
+    """Convert a statute-miles value to meters (Garmin's Distance unit).
+    '' passes through; non-numeric passes through unchanged."""
+    if not sm_value:
+        return ''
+    try:
+        f = float(sm_value)
+    except ValueError:
+        return sm_value
+    return f"{f * 1609.344:.1f}"
+
+
 def unquote_comment(s):
     """ForeFlight wraps some comments in literal quote characters; strip them."""
     s = s.strip()
@@ -270,6 +282,10 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             'Total Duration': num_str(row, cols, 'TotalTime')
                 or (num_str(row, cols, 'GroundTraining') if is_ground else ''),
             'Night Duration': num_str(row, cols, 'Night'),
+            # Garmin's own template uses the literal 'Self' for PIC Name,
+            # which the importer resolves to the account holder. An empty
+            # PIC Name is a suspected gate for the currency engine.
+            'PIC Name': 'Self' if num_str(row, cols, 'PIC') else '',
             'PIC Duration': num_str(row, cols, 'PIC'),
             'SIC Duration': num_str(row, cols, 'SIC'),
             'Solo Duration': num_str(row, cols, 'Solo'),
@@ -295,7 +311,10 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             # except a PAR involves intercepting and tracking a course, so
             # mark TRUE on any row with a logged approach.
             'Track Nav Aid': 'TRUE' if approaches else '',
-            'Distance': num_str(row, cols, 'Distance'),
+            # ForeFlight exports distance in statute miles; Garmin stores
+            # meters (verified against a manually-flown entry: 374697.8 for
+            # a ~232 SM leg, and the template sample is 204310.3).
+            'Distance': meters_str(num_str(row, cols, 'Distance')),
             'Remarks': ' | '.join(remarks_parts),
             'Instructor Name': instructor,
         }

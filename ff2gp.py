@@ -288,6 +288,13 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             'Night Landings': clean_int(night_land),
             'Approaches': approaches,
             'Holding Patterns': num_str(row, cols, 'Holds'),
+            # Garmin's Instrument (FAA) currency engine counts three fields
+            # per 61.57(c): Approaches, Holding Patterns, and Track Nav Aid
+            # (a TRUE flag for intercepting/tracking courses). ForeFlight's
+            # export has no tracking field, but every instrument approach
+            # except a PAR involves intercepting and tracking a course, so
+            # mark TRUE on any row with a logged approach.
+            'Track Nav Aid': 'TRUE' if approaches else '',
             'Distance': num_str(row, cols, 'Distance'),
             'Remarks': ' | '.join(remarks_parts),
             'Instructor Name': instructor,

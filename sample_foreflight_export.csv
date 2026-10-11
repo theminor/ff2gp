@@ -1,0 +1,12 @@
+ForeFlight Logbook Import,This row is required for importing into ForeFlight. Do not delete or modify.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aircraft Table
+AircraftID,TypeCode,Year,Make,Model,GearType,EngineType,equipType (FAA),aircraftClass (FAA),complexAircraft (FAA),taa (FAA),highPerformance (FAA),pressurized (FAA),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+N12345,C172,1980,Cessna Aircraft,172 Skyhawk,fixed_tricycle,Piston,aircraft,airplane_single_engine_land,,,,
+N54321,C182,1975,Cessna Aircraft,182 Skylane,fixed_tricycle,Piston,aircraft,airplane_single_engine_land,,,TRUE,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Flights Table , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , ,Deprecated: Do not edit manually,Deprecated: Do not edit manually,Deprecated: Do not edit manually,Deprecated: Do not edit manually,Deprecated: Do not edit manually
+Date,AircraftID,From,To,Route,TimeOut,TimeOff,TimeOn,TimeIn,OnDuty,OffDuty,TotalTime,PIC,SIC,Night,Solo,CrossCountry,PICUS,MultiPilot,IFR,Examiner,NVG,NVG Ops,Distance,ActualInstrument,SimulatedInstrument,HobbsStart,HobbsEnd,TachStart,TachEnd,Holds,Approach1,Approach2,Approach3,Approach4,Approach5,Approach6,DualGiven,DualReceived,SimulatedFlight,GroundTraining,GroundTrainingGiven,InstructorName,InstructorComments,Person1,Person2,Person3,Person4,Person5,Person6,PilotComments,Flight Review (FAA),IPC (FAA),Checkride (FAA),FAA 61.58 (FAA),NVG Proficiency (FAA),Takeoff Day,Takeoff Night,Takeoff Day Towered,Landing Full-Stop Day,Landing Touch-and-Go Day,Landing Full-Stop Night,Landing Full-Stop Day Towered,DayTakeoffs,DayLandingsFullStop,NightTakeoffs,NightLandingsFullStop,AllLandings
+2025-06-14,N12345,KAAA,KBBB,,14:02,14:08,15:12,15:18,,,1.1,1.1,,,,1.1,,,,,,,42.00,,,1234.5,1235.6,,,,,,,,,,,,,,,,,,,,,,,"""normal cross country""",,,,,,,,,,,,,1,1,,,1
+2025-06-15,N54321,KBBB,KAAA,,18:10,18:15,19:40,19:46,,,1.4,1.4,,0.4,,1.4,,,,,,,42.00,0.8,,,,,,,1;RNAV (GPS) RWY 32;32;KAAA;;CIRCLE,,,,,,,,,,,,,Jane Doe;Passenger;;,,,,,,"""night xc, hold, approach""",,,,,,,,,,,,,,,1,1,1
+2025-06-20,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,1.5,,John Smith;Instructor;;,,,,,,,,"""lesson: weather""",,,,,,,,,,,,,,,,,

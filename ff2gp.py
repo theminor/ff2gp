@@ -180,7 +180,8 @@ def parse_person(raw):
 # ---------------------------------------------------------------------------
 
 def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
-           keep_ground_training, with_remarks, landing_mode='total'):
+           keep_ground_training, with_remarks, landing_mode='total',
+           pic_name='Self'):
     cols = {h: j for j, h in enumerate(fl_hdr) if h}
     out_rows = []
     stats = {'flights': 0, 'ground': 0, 'skipped_ground': 0}
@@ -282,10 +283,13 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             'Total Duration': num_str(row, cols, 'TotalTime')
                 or (num_str(row, cols, 'GroundTraining') if is_ground else ''),
             'Night Duration': num_str(row, cols, 'Night'),
-            # Garmin's own template uses the literal 'Self' for PIC Name,
-            # which the importer resolves to the account holder. An empty
-            # PIC Name is a suspected gate for the currency engine.
-            'PIC Name': 'Self' if num_str(row, cols, 'PIC') else '',
+            # PIC Name: who was pilot in command. 'Self' is Garmin's
+            # template keyword but the importer stores it literally, so
+            # pass the account holder's real name (--pic-name). The field
+            # exists for shared logbooks (CFI logging dual given, or a
+            # student's logbook where the PIC is the instructor); in a
+            # personal logbook it is always the owner.
+            'PIC Name': pic_name if num_str(row, cols, 'PIC') else '',
             'PIC Duration': num_str(row, cols, 'PIC'),
             'SIC Duration': num_str(row, cols, 'SIC'),
             'Solo Duration': num_str(row, cols, 'Solo'),
@@ -421,6 +425,11 @@ def main():
                     help="Garmin has no full-stop/touch-and-go split: 'total' "
                          "(default) imports all landings; 'full-stop' only full-stops")
     ap.add_argument('--no-remarks', action='store_true')
+    ap.add_argument('--pic-name', default='Self', metavar='NAME',
+                    help="value for the PIC Name column on rows with PIC "
+                         "time (the account holder's full name, e.g. "
+                         "'John Minor'; 'Self' is Garmin's template "
+                         "placeholder and imports literally)")
     args = ap.parse_args()
 
     overrides = {}
@@ -437,7 +446,8 @@ def main():
 
     out_rows, stats = convert(aircraft, fl_hdr, flights, template_header,
                               overrides, not args.skip_ground_training,
-                              not args.no_remarks, args.landings)
+                              not args.no_remarks, args.landings,
+                              args.pic_name)
 
     with open(args.output, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)

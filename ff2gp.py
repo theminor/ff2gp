@@ -317,7 +317,7 @@ def convert(aircraft, fl_hdr, flights, template_header, type_overrides,
             # exists for shared logbooks (CFI logging dual given, or a
             # student's logbook where the PIC is the instructor); in a
             # personal logbook it is always the owner.
-            'PIC Name': pic_out if pic_out else '',
+            'PIC Name': pic_name if pic_out else '',
             'PIC Duration': pic_out,
             'SIC Duration': num_str(row, cols, 'SIC'),
             'Solo Duration': num_str(row, cols, 'Solo'),
